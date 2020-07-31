@@ -35,5 +35,8 @@
   "dependencies": {
     "golden-layout": "^1.5.9",
     "jquery": "^3.5.1"
+  },
+  "peerDependencies": {
+    "rollup-plugin-svelte-component-ioc": "0.x"
   }
 }

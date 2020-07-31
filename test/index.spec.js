@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import fs from 'fs';
 import { expect } from 'chai';
 import * as rollup from 'rollup';
@@ -8,11 +8,11 @@ import resolve from '@rollup/plugin-node-resolve';
 import layoutIntercept from '..';
 import { JSDOM } from 'jsdom';
 
-describe.skip('layout-intercept', () => {
+describe('layout-intercept', () => {
     it('replaces the import of App.svelte in main.js with a Golden Layout wrapper component', () => {
         const plugin = layoutIntercept();
         const id = plugin.resolveId('./the/path/doesnt/matter/App.svelte', 'neither/does/this/one/main.js');
-        expect(id).to.equal('src/_LayoutWrapper.svelte');
+        expect(id).to.match(/_LayoutWrapper.svelte$/);
 
         const file = plugin.load(id);
         expect(file).to.equal(fs.readFileSync('./src/LayoutWrapper.svelte', 'utf8'));
@@ -52,9 +52,14 @@ describe('browser behavior', () => {
         dom = new JSDOM('<!DOCTYPE html><body></body><script>' + code + '</script>', { runScripts: 'dangerously' });
 
         const App = (new Function('document', 'return ' + written.output[0].code))(dom.window.document);
-        dom.window.__DIS__ = writable({
+        const store = writable({
             '/src/App': App
         });
+        dom.window.__DIS__ = {
+            subscribe: store.subscribe,
+            replace: (name, val) => store.update(s => { s[name] = val; return s; }),
+            get() { return get(store); },
+        };
 
         return new Promise(resolve => setTimeout(resolve, 1000));
     });
@@ -77,5 +82,14 @@ describe('browser behavior', () => {
 
     it('relies on window.__DIS__ (injected by peer dependency rollup-plugin-svelte-component-ioc) to mount Svelte components within the layout', () => {
         expect(dom.window.document.querySelector('#app')).to.be.ok;
+    });
+
+    it('runs hooks found in the dependency store when the layout is shown', () => {
+        let hookCalled;
+        dom.window.__DIS__.replace('layout-intercept/onShow/test', () => hookCalled = true);
+
+        dom.window.showLayout();
+
+        expect(hookCalled).to.be.true;
     });
 });

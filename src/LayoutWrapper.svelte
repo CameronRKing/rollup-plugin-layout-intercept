@@ -7,6 +7,13 @@ import 'golden-layout';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-translucent-theme.css';
 
+function getHooks(event) {
+    const store = window.__DIS__.get();
+    return Object.keys(store)
+        .filter(key => key.startsWith(`layout-intercept/${event}/`))
+        .map(key => [key, store[key]]);
+}
+
 let layout, baseRow;
 onMount(() => {
     const config = {
@@ -55,6 +62,14 @@ onMount(() => {
         }
 
         window.showLayout = () => {
+            getHooks('onShow').forEach(([name, hook]) => {
+                if (typeof hook !== 'function') {
+                    console.warn(name + ' must be a function');
+                    return;
+                }
+                hook();
+            });
+
             header.style.display = 'block';
             content.style.background = contentBg;
             base.style.background = baseBg;
