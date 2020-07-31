@@ -1,3 +1,4 @@
+import { writable } from 'svelte/store';
 import fs from 'fs';
 import { expect } from 'chai';
 import * as rollup from 'rollup';
@@ -40,9 +41,20 @@ describe('browser behavior', () => {
 
         const { output: [{ code }] } = await bundle.generate({ format: 'iife' });
 
-        fs.writeFileSync('./bundle.js', code);
+        // I can't import a svelte component into mocha
+        // so I'll build and invoke it myself
+        const appBundle = await rollup.rollup({
+            input: 'test/App.svelte',
+            plugins: [svelte(), resolve()]
+        });
+        const written = await appBundle.generate({ format: 'iife' });
 
         dom = new JSDOM('<!DOCTYPE html><body></body><script>' + code + '</script>', { runScripts: 'dangerously' });
+
+        const App = (new Function('document', 'return ' + written.output[0].code))(dom.window.document);
+        dom.window.__DIS__ = writable({
+            '/src/App': App
+        });
 
         return new Promise(resolve => setTimeout(resolve, 1000));
     });
@@ -61,5 +73,9 @@ describe('browser behavior', () => {
         expect(layoutHeaderDisplay()).to.equal('block');
         dom.window.hideLayout();
         expect(layoutHeaderDisplay()).to.equal('none');
+    });
+
+    it('relies on window.__DIS__ (injected by peer dependency rollup-plugin-svelte-component-ioc) to mount Svelte components within the layout', () => {
+        expect(dom.window.document.querySelector('#app')).to.be.ok;
     });
 });
