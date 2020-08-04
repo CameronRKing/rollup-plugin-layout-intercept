@@ -17,8 +17,8 @@ export default function layoutIntercept() {
             }
         },
         load(id) {
-            if (id.endsWith('_LayoutWrapper.svelte')) return fs.readFileSync('./src/LayoutWrapper.svelte', 'utf8');
-            if (id.endsWith('SvelteBridge.svelte')) return fs.readFileSync('./src/SvelteBridge.svelte', 'utf8');
+            if (id.endsWith('_LayoutWrapper.svelte')) return fs.readFileSync(path.resolve(__dirname, './LayoutWrapper.svelte'), 'utf8');
+            if (id.endsWith('SvelteBridge.svelte')) return fs.readFileSync(path.resolve(__dirname, './SvelteBridge.svelte'), 'utf8');
         }
     };
 }

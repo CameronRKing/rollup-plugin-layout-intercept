@@ -2,8 +2,10 @@
   "name": "rollup-plugin-layout-intercept",
   "version": "0.1.0",
   "description": "Replaces the App.svelte import in main.js with a Golden Layout wrapper component",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
   "scripts": {
+    "build": "rollup -c",
     "test": "mocha -r esm 'test/*.spec.js'"
   },
   "repository": {
@@ -32,10 +34,7 @@
     "rollup-plugin-svelte": "^5.2.3",
     "svelte": "^3.24.0"
   },
-  "dependencies": {
-    "golden-layout": "^1.5.9",
-    "jquery": "^3.5.1"
-  },
+  "dependencies": {},
   "peerDependencies": {
     "rollup-plugin-svelte-component-ioc": "0.x"
   }
