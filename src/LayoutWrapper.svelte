@@ -46,6 +46,7 @@ onMount(async () => {
     const config = {
         content: [{
             type: 'row',
+            isClosable: false,
             content:[{
                 type: 'column',
                 content:[{
@@ -72,17 +73,25 @@ onMount(async () => {
     // GoldenLayout won't allow an anonymous function, because they can't be used as constructors.
     // So I need a normal function that has a working reference to SvelteBridge
     // an IIFE seemed appropriate
-    layout.registerComponent('SvelteBridge', (function(SvelteBridge) {
-        return function(container, componentState) {
-            if (componentState.lm_title) container.setTitle(componentState.lm_title);
+    layout.registerComponent('SvelteBridge', function(container, componentState) {
+        if (componentState.lm_title) container.setTitle(componentState.lm_title);
+        else container.setTitle(componentState.component);
 
-            return new SvelteBridge({
-                target: container.getElement()[0],
-                props: componentState
-            });
-        }
-    })(SvelteBridge));
+        const cmp = new SvelteBridge({
+            target: container.getElement()[0],
+            props: componentState
+        });
 
+        container.on('destroy', () => {
+            try {
+                cmp.$destroy();
+            } catch(e) {
+                throw new Error('If component destruction is erroring out and you\'re using the svelte devtools Chrome extension, try disabling it.');
+            }
+        });
+
+        return cmp;
+    });
 
     /**
      * I tried for a few hours to switch between editing and normal views
@@ -154,6 +163,17 @@ onMount(async () => {
         // placeholder.parent.replaceChild(placeholder, app);
         // app.container.show();
 
+        function makeCmp(component, state) {
+            return {
+                type: 'component',
+                componentName: 'SvelteBridge',
+                componentState: {
+                    ...state,
+                    component
+                }
+            }
+        }
+
         baseRow = layout.root.contentItems[0];
         const header = document.querySelector('.lm_header'),
             content = document.querySelector('.lm_content'),
@@ -179,7 +199,7 @@ onMount(async () => {
                 runHooks('onInit');
             }
 
-            runHooks('onShow', layout);
+            runHooks('onShow', baseRow, makeCmp);
 
             header.style.display = 'block';
             content.style.background = contentBg;
