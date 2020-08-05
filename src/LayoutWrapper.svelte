@@ -79,7 +79,7 @@ onMount(async () => {
 
         const cmp = new SvelteBridge({
             target: container.getElement()[0],
-            props: componentState
+            props: Object.assign(componentState, { gl_container: container, gl_layout: layout })
         });
 
         container.on('destroy', () => {
