@@ -31,13 +31,13 @@ function getHooks(event) {
         .map(key => [key, store[key]]);
 }
 
-function runHooks(event) {
+function runHooks(event, ...data) {
     getHooks(event).forEach(([name, hook]) => {
         if (typeof hook !== 'function') {
             console.warn(`layout-intercept/${event}/${name} must be a function`);
             return;
         }
-        hook();
+        hook(...data);
     });
 }
 
@@ -179,7 +179,7 @@ onMount(async () => {
                 runHooks('onInit');
             }
 
-            runHooks('onShow');
+            runHooks('onShow', layout);
 
             header.style.display = 'block';
             content.style.background = contentBg;
