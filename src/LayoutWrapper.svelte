@@ -52,7 +52,7 @@ onMount(async () => {
                 content:[{
                     type: 'component',
                     componentName: 'SvelteBridge',
-                    componentState: { ...$$restProps, component: '/src/App' }
+                    componentState: { ...$$restProps, component: '/src/App.svelte' }
                 }]
             }]
         }]
@@ -173,6 +173,8 @@ onMount(async () => {
                 }
             }
         }
+
+        window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
 
         baseRow = layout.root.contentItems[0];
         const header = document.querySelector('.lm_header'),
