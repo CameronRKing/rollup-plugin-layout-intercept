@@ -41,6 +41,17 @@ function runHooks(event, ...data) {
     });
 }
 
+function makeCmp(component, state) {
+    return {
+        type: 'component',
+        componentName: 'SvelteBridge',
+        componentState: {
+            ...state,
+            component
+        }
+    }
+}
+
 let layout, baseRow;
 onMount(async () => {
     const config = {
@@ -66,6 +77,10 @@ onMount(async () => {
     ]);
 
     layout = new GoldenLayout(config);
+
+    // maybe .replace should be renamed .register?
+    window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
+    window.__DIS__.replace('layout-intercept/gl_layout', layout);
 
     // the IIFE is necessary because:
     // Svelte apparently won't catch the reference to SvelteBridge inside a normal function like this
@@ -162,20 +177,6 @@ onMount(async () => {
         // const placeholder = findAppPlaceholder(normalRoot);
         // placeholder.parent.replaceChild(placeholder, app);
         // app.container.show();
-
-        function makeCmp(component, state) {
-            return {
-                type: 'component',
-                componentName: 'SvelteBridge',
-                componentState: {
-                    ...state,
-                    component
-                }
-            }
-        }
-
-        window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
-
         baseRow = layout.root.contentItems[0];
         const header = document.querySelector('.lm_header'),
             content = document.querySelector('.lm_content'),
