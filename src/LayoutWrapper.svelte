@@ -4,7 +4,7 @@ import App from './App.svelte';
 /** @ioc-ignore */
 import SvelteBridge from './SvelteBridge.svelte';
 
-export function loadScript(src) {
+function loadScript(src) {
     return new Promise(resolve => {
         const script = document.createElement('script');
         script.src = src;
@@ -13,7 +13,7 @@ export function loadScript(src) {
     });
 }
 
-export function loadCss(href) {
+function loadCss(href) {
     return new Promise(resolve => {
         const link = document.createElement('link');
         link.type = 'text/css';
