@@ -101,7 +101,8 @@ onMount(async () => {
             try {
                 cmp.$destroy();
             } catch(e) {
-                throw new Error('If component destruction is erroring out and you\'re using the svelte devtools Chrome extension, try disabling it.');
+                console.warn('Are you using the svelte-devtools browser extension? Try disabling it.')
+                throw e;
             }
         });
 
