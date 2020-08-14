@@ -215,3 +215,9 @@ onMount(async () => {
 });
 
 </script>
+
+<style>
+:global(.lm_content) {
+    overflow-y: auto !important;
+}
+</style>
