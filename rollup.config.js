@@ -20,6 +20,7 @@ export default {
             buildStart() {
                 copyFile(this, 'LayoutWrapper.svelte');
                 copyFile(this, 'SvelteBridge.svelte');
+                copyFile(this, 'SvelteWidget.js');
             }
         }
     ],

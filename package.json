@@ -1,7 +1,7 @@
 {
   "name": "rollup-plugin-layout-intercept",
   "version": "0.1.0",
-  "description": "Replaces the App.svelte import in main.js with a Golden Layout wrapper component",
+  "description": "Replaces the App.svelte import in main.js with a toggleable Lumino wrapper widget.",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "scripts": {
@@ -34,7 +34,10 @@
     "rollup-plugin-svelte": "^5.2.3",
     "svelte": "^3.24.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@lumino/default-theme": "^0.4.4",
+    "@lumino/widgets": "^1.13.4"
+  },
   "peerDependencies": {
     "rollup-plugin-svelte-component-ioc": "0.x"
   }

@@ -1,28 +1,10 @@
 <script>
 import { onMount } from 'svelte';
 import App from './App.svelte';
-/** @ioc-ignore */
-import SvelteBridge from './SvelteBridge.svelte';
+import { BoxPanel, DockPanel, SplitPanel, Widget } from '@lumino/widgets';
+import '@lumino/default-theme/style/index.css';
+import SvelteWidget from './SvelteWidget.js';
 
-function loadScript(src) {
-    return new Promise(resolve => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        document.head.appendChild(script);
-    });
-}
-
-function loadCss(href) {
-    return new Promise(resolve => {
-        const link = document.createElement('link');
-        link.type = 'text/css';
-        link.rel = 'stylesheet';
-        link.href = href;
-        link.onload = resolve;
-        document.head.appendChild(link);
-    });
-}
 
 function getHooks(event) {
     const store = window.__DIS__.get();
@@ -42,182 +24,57 @@ function runHooks(event, ...data) {
 }
 
 function makeCmp(component, state) {
-    return {
-        type: 'component',
-        componentName: 'SvelteBridge',
-        componentState: {
-            ...state,
-            component
-        }
-    }
+    return new SvelteWidget(component, state);
 }
 
-let layout, baseRow;
+let wrapper, main, dock, split, appWidget, lastParent;
 onMount(async () => {
-    const config = {
-        content: [{
-            type: 'row',
-            isClosable: false,
-            content:[{
-                type: 'column',
-                content:[{
-                    type: 'component',
-                    componentName: 'SvelteBridge',
-                    componentState: { ...$$restProps, component: '/src/App.svelte' }
-                }]
-            }]
-        }]
-    };
+    main = new BoxPanel({ direction: 'left-to-right', spacing: 0 })
+    split = new SplitPanel();
+    dock = new DockPanel();
+    BoxPanel.setStretch(dock, 1);
+    main.addWidget(split);
+    split.addWidget(dock);
+    lastParent = dock;
+    appWidget = new SvelteWidget('/src/App.svelte', $$props);
 
-    await loadScript('http://code.jquery.com/jquery-1.11.1.min.js');
-    await Promise.all([
-        loadScript('https://golden-layout.com/files/latest/js/goldenlayout.min.js'),
-        loadCss('https://golden-layout.com/files/latest/css/goldenlayout-base.css'),
-        loadCss('https://golden-layout.com/files/latest/css/goldenlayout-light-theme.css')
-    ]);
-
-    layout = new GoldenLayout(config);
+    Widget.attach(appWidget, wrapper);
 
     // maybe .replace should be renamed .register?
     window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
-    window.__DIS__.replace('layout-intercept/gl_layout', layout);
+    window.__DIS__.replace('layout-intercept/layout', main);
 
-    // the IIFE is necessary because:
-    // Svelte apparently won't catch the reference to SvelteBridge inside a normal function like this
-    // (keep getting 'SvelteBridge is not a constructor')
-    // GoldenLayout won't allow an anonymous function, because they can't be used as constructors.
-    // So I need a normal function that has a working reference to SvelteBridge
-    // an IIFE seemed appropriate
-    layout.registerComponent('SvelteBridge', function(container, componentState) {
-        if (componentState.lm_title) container.setTitle(componentState.lm_title);
-        else container.setTitle(componentState.component);
+    window.hideLayout = () => {
+        Widget.detach(main);
 
-        const cmp = new SvelteBridge({
-            target: container.getElement()[0],
-            props: Object.assign(componentState, { gl_container: container, gl_layout: layout })
-        });
+        lastParent = appWidget.parent;
+        appWidget.parent = null;
 
-        container.on('destroy', () => {
-            try {
-                cmp.$destroy();
-            } catch(e) {
-                console.warn('Are you using the svelte-devtools browser extension? Try disabling it.')
-                throw e;
-            }
-        });
+        Widget.attach(appWidget, wrapper);
+    }
 
-        return cmp;
-    });
+    let firstTime = true;
+    window.showLayout = () => {
+        Widget.detach(appWidget);
+        Widget.attach(main, wrapper);
+        lastParent.addWidget(appWidget);
 
-    /**
-     * I tried for a few hours to switch between editing and normal views
-     * in a way that preserves both the current App state and the editor layout.
-     * But it seems as though GoldenLayout doesn't reattach all its event handlers
-     * when you work with it on such a low level.
-     * This code "works"; both App state and editor layout are preserved;
-     * however, NONE OF THE GOLDEN LAYOUT UI WORKS and I have no idea why.
-     *
-     * I give up.
-     * 
-     * I leave the code commented out in case I want to take another crack at it in the future.
-     **/
-    // window.l = layout;
-
-    // layout.registerComponent('AppPlaceholder', function(container, componentState) {
-    //     return {};
-    // });
-
-    // function findApp(root) {
-    //     return root.getItemsByFilter(item => item.isComponent && item.config.componentState.component == '/src/App')[0];
-    // }
-
-    // function findAppPlaceholder(root) {
-    //     return root.getItemsByFilter(item => item.isComponent && item.componentName == 'AppPlaceholder')[0];
-    // }
-
-    // function setRoot(root) {
-    //     // first, pull out the App component and mark where it was with a placeholder
-    //     const app = findApp(layout.root.contentItems[0]);
-    //     const appIdx = app.parent.contentItems.indexOf(app);
-    //     app.parent.addChild({ type: 'component', componentName: 'AppPlaceholder', componentState: {} }, appIdx);
-    //     app.parent.removeChild(app, true);
-
-    //     // then, replace the appless root with the new root
-    //     const oldRoot = layout.root.contentItems[0];
-    //     layout.root.removeChild(oldRoot, true);
-    //     oldRoot.element.remove();
-    //     layout.root.addChild(root);
-
-    //     // finally, add the App into the placeholder in the new root
-    //     const placeholder = findAppPlaceholder(root);
-    //     placeholder.parent.replaceChild(placeholder, app);
-    //     app.container.show();
-    // }
-
-    setTimeout(() => layout.init(), 100);
-    setTimeout(() => {
-        // // the easiest way to hydrate a second config is to add it
-        // // then remove it without destroying it
-        // const editingRoot = layout.root.contentItems[0];
-        // const app = findApp(editingRoot);
-        // const appIdx = app.parent.contentItems.indexOf(app);
-        // app.parent.addChild({ type: 'component', componentName: 'AppPlaceholder', componentState: {} }, appIdx);
-        // app.parent.removeChild(app, true);
-        // layout.root.removeChild(editingRoot, true);
-        // editingRoot.element.remove();
-
-        // layout.root.addChild({
-        //     type: 'row',
-        //     content: [{
-        //         type: 'component',
-        //         componentName: 'AppPlaceholder',
-        //         componentState: {},
-        //     }]
-        // });
-        // const normalRoot = layout.root.contentItems[0];
-        // const placeholder = findAppPlaceholder(normalRoot);
-        // placeholder.parent.replaceChild(placeholder, app);
-        // app.container.show();
-        baseRow = layout.root.contentItems[0];
-        const header = document.querySelector('.lm_header'),
-            content = document.querySelector('.lm_content'),
-            base = document.querySelector('.lm_goldenlayout'),
-            contentBg = content.style.background,
-            baseBg = base.style.background;
-
-        window.hideLayout = () => {
-            // assume the App is in a single column on the rightmost side
-            while (baseRow.contentItems.length > 1) {
-                baseRow.removeChild(baseRow.contentItems[0]);
-            }
-
-            header.style.display = 'none';
-            content.style.background = 'transparent';
-            base.style.background = 'transparent';
+        if (firstTime) {
+            firstTime = false;
+            runHooks('onInit');
         }
 
-        let firstTime = true;
-        window.showLayout = () => {
-            if (firstTime) {
-                firstTime = false;
-                runHooks('onInit');
-            }
-
-            runHooks('onShow', baseRow, makeCmp);
-
-            header.style.display = 'block';
-            content.style.background = contentBg;
-            base.style.background = baseBg;
-        };
-
-        hideLayout();
-    }, 200);
+        runHooks('onShow', main, makeCmp);
+    };
 });
 
 </script>
 
 <style>
-:global(.lm_content) {
-    overflow-y: auto !important;
+:global('.lm-Widget') {
+    display: flex;
+    justify-content: center;
 }
 </style>
+
+<div style="width: 100%; height: 100%;" bind:this={wrapper}></div>
