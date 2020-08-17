@@ -3,18 +3,17 @@ import { Widget } from '@lumino/widgets';
 import SvelteBridge from './SvelteBridge.svelte';
 
 export default class SvelteWidget extends Widget {
-    constructor(component, props, id='') {
+    constructor(component, props, { label }={}) {
         const node = document.createElement('div');
         super({ node });
         this.target = document.createElement('div');
-        this.target.style.position = 'fixed';
+        this.target.style.height = '100%';
         node.appendChild(this.target);
         this.cmpInstance = null;
         this.component = component;
         this.props = props;
 
-        this.id = id;
-        this.title.label = component;
+        this.title.label = label ? label : component;
         this.title.closable = true;
     }
 

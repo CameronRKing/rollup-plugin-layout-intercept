@@ -1,9 +1,11 @@
 <script>
 import { onMount } from 'svelte';
 import App from './App.svelte';
-import { BoxPanel, DockPanel, SplitPanel, Widget } from '@lumino/widgets';
+import * as Widgets from '@lumino/widgets';
 import '@lumino/default-theme/style/index.css';
 import SvelteWidget from './SvelteWidget.js';
+
+const { BoxPanel, DockPanel, SplitPanel, Widget } = Widgets;
 
 
 function getHooks(event) {
@@ -23,8 +25,8 @@ function runHooks(event, ...data) {
     });
 }
 
-function makeCmp(component, state) {
-    return new SvelteWidget(component, state);
+function makeCmp(component, state, opts={}) {
+    return new SvelteWidget(component, state, opts);
 }
 
 let wrapper, main, dock, split, appWidget, lastParent;
@@ -41,8 +43,9 @@ onMount(async () => {
     Widget.attach(appWidget, wrapper);
 
     // maybe .replace should be renamed .register?
-    window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
     window.__DIS__.replace('layout-intercept/layout', main);
+    window.__DIS__.replace('layout-intercept/makeCmp', makeCmp);
+    window.__DIS__.replace('layout-intercept/widgets', Widgets);
 
     window.hideLayout = () => {
         Widget.detach(main);
@@ -64,17 +67,21 @@ onMount(async () => {
             runHooks('onInit');
         }
 
-        runHooks('onShow', main, makeCmp);
+        runHooks('onShow', main, makeCmp, Widgets);
     };
 });
 
 </script>
 
 <style>
-:global('.lm-Widget') {
-    display: flex;
-    justify-content: center;
+:global(html, body) {
+    height: 100%;
+}
+
+:global(.lm-Widget) {
+    height: 100% !important;
 }
 </style>
 
 <div style="width: 100%; height: 100%;" bind:this={wrapper}></div>
+<svelte:window on:resize={() => main.update()} />
