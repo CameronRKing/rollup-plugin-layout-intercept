@@ -2,6 +2,7 @@
 import { onMount } from 'svelte';
 import App from './App.svelte';
 import * as Widgets from '@lumino/widgets';
+import { CommandRegistry } from '@lumino/commands';
 import '@lumino/default-theme/style/index.css';
 import SvelteWidget from './SvelteWidget.js';
 
@@ -29,6 +30,8 @@ function makeCmp(component, state, opts={}) {
     return new SvelteWidget(component, state, opts);
 }
 
+const commands = new CommandRegistry();
+
 let wrapper, main, dock, split, appWidget, lastParent;
 onMount(async () => {
     main = new BoxPanel({ direction: 'left-to-right', spacing: 0 })
@@ -37,9 +40,11 @@ onMount(async () => {
     BoxPanel.setStretch(dock, 1);
     main.addWidget(split);
     split.addWidget(dock);
+
+    // to preserve editor layout on hide, the App widget is inserted/pulled from the widget hierarchy
+    // and attached by itself, if we're not editing
     lastParent = dock;
     appWidget = new SvelteWidget('/src/App.svelte', $$props);
-
     Widget.attach(appWidget, wrapper);
 
     // maybe .replace should be renamed .register?
@@ -60,14 +65,15 @@ onMount(async () => {
     window.showLayout = () => {
         Widget.detach(appWidget);
         Widget.attach(main, wrapper);
+        // this logic doesn't respect placement, but that's not a big deal for now
         lastParent.addWidget(appWidget);
 
         if (firstTime) {
             firstTime = false;
-            runHooks('onInit');
+            runHooks('onInit', main, makeCmp, Widgets, commands);
         }
 
-        runHooks('onShow', main, makeCmp, Widgets);
+        runHooks('onShow', main, makeCmp, Widgets, commands);
     };
 });
 
@@ -84,4 +90,4 @@ onMount(async () => {
 </style>
 
 <div style="width: 100%; height: 100%;" bind:this={wrapper}></div>
-<svelte:window on:resize={() => main.update()} />
+<svelte:window on:resize={() => main.update()} on:keydown={e => commands.processKeydownEvent(e)} />
